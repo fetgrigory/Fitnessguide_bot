@@ -9,5 +9,6 @@
 
 # Описание программы
 Применяемые библиотеки:<br />
-pyTelegramBotAPI 4.10.0 <br />
+aiogram            2.14.3 <br />
+python-dotenv  1.0.1 <br />
 sqlite3 <br />

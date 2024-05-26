@@ -3,7 +3,7 @@ This bot make
 
 Athor: Fetkulin Grigory, Fetkulin.G.R@yandex.ru
 Starting 15/04/2022
-Ending 25/05/2024
+Ending 26/05/2024
 
 '''
 # Installing the necessary libraries

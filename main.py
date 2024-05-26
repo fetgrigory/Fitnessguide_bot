@@ -1,152 +1,113 @@
 '''
-This module make
+This bot make
 
 Athor: Fetkulin Grigory, Fetkulin.G.R@yandex.ru
-Starting 2022/04/15
-Ending 2022/04/16
+Starting 15/04/2022
+Ending 25/05/2024
 
 '''
-# Установка необходимых библиотек
+# Installing the necessary libraries
+from aiogram import Bot, Dispatcher, types
 import sqlite3
-import telebot
-from telebot import types
-from datetime import datetime
-from settings import TG_TOKEN
-# Подключение API ключа
-bot = telebot.TeleBot(TG_TOKEN)
+import datetime
+import asyncio
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # Load environment variables from a .env file.
+
+# Initialize telegram bot, dispatcher, and database connection.
+bot = Bot(os.getenv('TOKEN'))
+dp = Dispatcher(bot=bot)
 
 
-# Создание таблицы fitness в базе данных, если ее нет
 conn = sqlite3.connect('fitness.db')
 cursor = conn.cursor()
-cursor.execute('''CREATE TABLE IF NOT EXISTS fitness 
-               (id INTEGER PRIMARY KEY AUTOINCREMENT, 
+
+# Create a table to store fitness data if it doesn't already exist.
+cursor.execute('''CREATE TABLE IF NOT EXISTS fitness
+               (id INTEGER PRIMARY KEY AUTOINCREMENT,
                date VARCHAR(50),
-               hands VARCHAR(50), 
-               breast VARCHAR(50), 
-               press VARCHAR(50), 
-               back VARCHAR(50), 
-               legs VARCHAR(50))''')
+               hands VARCHAR(50),
+               breast VARCHAR(50),
+               press VARCHAR(50))''')
 conn.commit()
-conn.close()
 
+USER_DATA = {}  # Dictionary to store user input data.
+questions = [  # List of questions for the user input.
+    "Введите количество жима лёжа:",
+    "Введите количество разведения гантелей на грудь:",
+    "Введите количество подъёмов туловища из положения лёжа на спине:"
+]
 
-# Обработчик команды /start
-@bot.message_handler(commands=['start'])
-def start(message):
-    # клавиатура
-    markup = types.InlineKeyboardMarkup()
-    markup.row(
-        types.InlineKeyboardButton("Добавить данные", callback_data='hands'),
+# Handler for the /start command to welcome users and provide options.
+@dp.message_handler(commands=['start'])
+async def start(message: types.Message):
+    # Clear user data and create a keyboard with options.
+    USER_DATA.clear()
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.row(
+        types.InlineKeyboardButton("Добавить данные", callback_data='add_data'),
         types.InlineKeyboardButton("Получить данные", callback_data='get_data')
     )
-    markup.add(
+    # Add a button to show workout exercises on YouTube.
+    keyboard.add(
         types.InlineKeyboardButton("Показать упражнения на YouTube", url="https://www.youtube.com/@IgorVoitenkoWorkout")
     )
-    # Отправка сообщения с кнопками
-    bot.send_message(message.chat.id, "Здравствуйте, {0.first_name}!\nМеня зовут<b> {1.first_name}</b>, Я помогу тебе вести учёт фитнес-тренировок.\n".format(
-                         message.from_user, bot.get_me()), parse_mode='html', reply_markup=markup)
+    me = await bot.get_me()
+    await message.answer(f"Здравствуйте, {message.from_user.first_name}!\n"
+                         f"Меня зовут {me.first_name}, Я помогу вам вести учет фитнес-тренировок.",
+                         parse_mode='html', reply_markup=keyboard)
 
+# Handler when user chooses to add workout data.
+@dp.callback_query_handler(lambda c: c.data == 'add_data')
+async def add_workout_data(callback_query: types.CallbackQuery):
+    await ask_next_question(callback_query.message)
 
-# Функция для записи данных в базу данных
-def record_data(date, hands, breast, press, back, legs):
-    # Подключение к базе данных
+# Handler when user chooses to get workout data.
+@dp.callback_query_handler(lambda c: c.data == 'get_data')
+async def get_workout_data(callback_query: types.CallbackQuery):
+    # Retrieve data from the database and send it back to the user.
+    await callback_query.answer()
     conn = sqlite3.connect('fitness.db')
     cursor = conn.cursor()
-    # Вставка данных в таблицу fitness
-    cursor.execute(f"INSERT INTO fitness (date, hands, breast, press, back, legs) VALUES ('{date}', '{hands}', '{breast}', '{press}', '{back}', '{legs}')")
-    # Сохранение изменений
-    conn.commit()
-    # Закрытие соединения с базой данных
+    cursor.execute("SELECT * FROM fitness")
+    data = cursor.fetchall()
     conn.close()
 
+    result = ''
+    for record in data:
+        result += f"Дата: {record[1]}\nОтжимания: {record[2]}\nЖим лёжа: {record[3]}\nРазведение гантелей на грудь: {record[4]}\n\n"
 
-# Функция для записи данных об отжиманиях
-def record_hands(message):
-    hands = message.text
-    # Просьба ввести количество жима лёжа
-    bot.send_message(message.chat.id, 'Введите количество жима лёжа')
-    bot.register_next_step_handler(message, record_breast, hands)
+    await bot.send_message(callback_query.message.chat.id, f"Данные о тренировках:\n{result}")
 
+# Handler for asking the next question in the user input flow.
+async def ask_next_question(message: types.Message):
+    if len(USER_DATA) < len(questions):
+        question = questions[len(USER_DATA)]
+        await message.answer(question)
+        USER_DATA['current_question'] = question
+    else:
+        await save_workout_data(message)
 
-# Функция для записи данных о жиме лежа
-def record_breast(message, hands):
-    breast = message.text
-    # Просьба ввести количество разведения гантелей на грудь
-    bot.send_message(message.chat.id, 'Введите количество разведения гантелей на грудь')
-    bot.register_next_step_handler(message, record_press, hands, breast)
+# Handler for adding workout data based on user input.
+@dp.message_handler()
+async def add_workout(message: types.Message):
+    answer = message.text
+    if 'current_question' in USER_DATA:
+        USER_DATA[USER_DATA['current_question']] = answer
+        del USER_DATA['current_question']
+        await ask_next_question(message)
 
+# Function to save workout data to the database.
+async def save_workout_data(message: types.Message):
+    current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    data = [current_date, USER_DATA.get(questions[0], ""), USER_DATA.get(questions[1], ""), USER_DATA.get(questions[2], "")]
+    cursor.execute("INSERT INTO fitness (date, hands, breast, press) VALUES (?, ?, ?, ?)", data)
+    conn.commit()
+    await message.answer("Данные о тренировке успешно сохранены!")
 
-# Функция для записи данных о разведении гантелей
-def record_press(message, hands, breast):
-    press = message.text
-    # Просьба ввести количество подъёмов туловища из положения лёжа на спине
-    bot.send_message(message.chat.id, 'Введите количество подъёмов туловища из положения лёжа на спине')
-    bot.register_next_step_handler(message, record_back, hands, breast, press)
-
-
-# Функция для записи данных о подъёмах туловища
-def record_back(message, hands, breast, press):
-    back = message.text
-    # Просьба ввести количество подтягиваний на перекладине
-    bot.send_message(message.chat.id, 'Введите количество подтягиваний на перекладине')
-    bot.register_next_step_handler(message, record_legs, hands, breast, press, back)
-
-
-# Функция для записи данных о подтягиваниях на перекладине
-def record_legs(message, hands, breast, press, back):
-    legs = message.text
-    # Запись данных в базу данных
-    date = datetime.now().strftime("%d-%m-%Y")
-    record_data(date, hands, breast, press, back, legs)
-    # Отправка сообщения об успешном сохранении данных
-    bot.send_message(message.chat.id, 'Данные успешно сохранены!')
-
-
-# Обработчик нажатий на кнопки
-@bot.callback_query_handler(func=lambda call: True)
-def callback_query(call):
-    if call.data == "hands":
-        # Просьба ввести количество отжиманий
-        bot.answer_callback_query(callback_query_id=call.id)
-        bot.send_message(call.message.chat.id, "Введите количество отжиманий:")
-        bot.register_next_step_handler(call.message, record_hands)
-    elif call.data == 'breast':
-        # Просьба ввести количество жима лёжа
-        bot.answer_callback_query(callback_query_id=call.id)
-        bot.send_message(call.message.chat.id, 'Введите количество жима лёжа:')
-        bot.register_next_step_handler(call.message, record_breast, '')
-    elif call.data == 'press':
-        # Просьба ввести количество разведения гантелей на грудь
-        bot.answer_callback_query(callback_query_id=call.id)
-        bot.send_message(call.message.chat.id, 'Введите количество разведения гантелей на грудь:')
-        bot.register_next_step_handler(call.message, record_press, '', '')
-    elif call.data == 'back':
-        # Просьба ввести количество подъёмов туловища из положения лёжа на спине
-        bot.answer_callback_query(callback_query_id=call.id)
-        bot.send_message(call.message.chat.id, 'Введите количество подъёмов туловища из положения лёжа на спине:')
-        bot.register_next_step_handler(call.message, record_back, '', '', '')
-    elif call.data == 'legs':
-        # Просьба ввести количество подтягиваний на перекладине
-        bot.answer_callback_query(callback_query_id=call.id)
-        bot.send_message(call.message.chat.id, 'Введите количество подтягиваний на перекладине:')
-        bot.register_next_step_handler(call.message, record_legs, '', '', '', '')
-    elif call.data == 'get_data':
-        # Получение данных из базы данных
-        bot.answer_callback_query(callback_query_id=call.id)
-        conn = sqlite3.connect('fitness.db')
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM fitness")
-        data = cursor.fetchall()
-        conn.close()
-        # Формирование строк со значениями данных в таблице
-        result = ''
-        for record in data:
-            date = datetime.strptime(record[1], "%d-%m-%Y").strftime("%d.%m.%Y")
-            result += f'Дата: {date}\nОтжимания: {record[2]},\n Жим лёжа: {record[3]},\n Разведение гантелей на грудь: {record[4]},\n Подъёмы туловища из положения лёжа на спине: {record[5]},\n Подтягивания на перекладине: {record[6]}\n\n'
-        # Отправка сообщения с данными
-        bot.send_message(call.message.chat.id, f'Таблица fitness:\n{result}')
-
-
-# Чтение новых сообщений
-bot.polling(none_stop=True)
+# Start the polling loop for the dispatcher.
+if __name__ == '__main__':
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(dp.start_polling())

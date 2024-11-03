@@ -1,26 +1,25 @@
 '''
 This bot make
 
-Athor: Fetkulin Grigory, Fetkulin.G.R@yandex.ru
+Author: Fetkulin Grigory, Fetkulin.G.R@yandex.ru
 Starting 15/04/2022
 Ending //
-
 '''
 # Installing the necessary libraries
 import os
 import datetime
-import asyncio
 from dotenv import load_dotenv
-from aiogram import Bot, Dispatcher, types
-from aiogram.contrib.middlewares.logging import LoggingMiddleware
+from aiogram import Bot, Dispatcher
+from aiogram.types import Message, CallbackQuery
+from aiogram.filters import Command
+from aiogram.fsm.storage.memory import MemoryStorage
 from app.database import create_table, insert_workout_data, get_workout_data
 from app.keyboards import main_keyboard
-
+import asyncio
 load_dotenv()
 # Initialization of the board and the dispatcher.
-bot = Bot(os.getenv('TOKEN'))
-dp = Dispatcher(bot)
-dp.middleware.setup(LoggingMiddleware())
+bot = Bot(token=os.getenv('TOKEN'))
+dp = Dispatcher(storage=MemoryStorage())
 
 # Global variable to store user data
 USER_DATA = {}
@@ -36,23 +35,25 @@ create_table()
 print('Бот успешно запущен!')
 
 
-@dp.message_handler(commands=['start'])
-async def start(message: types.Message):
+@dp.message(Command("start"))
+async def start(message: Message):
     USER_DATA.clear()
     keyboard = main_keyboard()
-    me = await bot.get_me()
+    me = await bot.me()
     await message.answer(f"Здравствуйте, {message.from_user.first_name}!\n"
                          f"Меня зовут {me.first_name}, Я помогу вам вести учет фитнес-тренировок.",
-                         parse_mode='html', reply_markup=keyboard)
+                         reply_markup=keyboard)
 
 
 # Handler when user chooses to add workout data
-@dp.callback_query_handler(lambda c: c.data == 'add_data')
-async def add_workout_data(callback_query: types.CallbackQuery):
+@dp.callback_query(lambda c: c.data == 'add_data')
+async def add_workout_data(callback_query: CallbackQuery):
     await ask_next_question(callback_query.message)
+
+
 # Handler when user chooses to get workout data
-@dp.callback_query_handler(lambda c: c.data == 'get_data')
-async def get_workout_data_handler(callback_query: types.CallbackQuery):
+@dp.callback_query(lambda c: c.data == 'get_data')
+async def get_workout_data_handler(callback_query: CallbackQuery):
     await callback_query.answer()
     data = get_workout_data()
     result = ''
@@ -62,7 +63,7 @@ async def get_workout_data_handler(callback_query: types.CallbackQuery):
 
 
 # Handler for asking the next question in the user input flow
-async def ask_next_question(message: types.Message):
+async def ask_next_question(message: Message):
     if len(USER_DATA) < len(questions):
         question = questions[len(USER_DATA)]
         await message.answer(question)
@@ -72,8 +73,8 @@ async def ask_next_question(message: types.Message):
 
 
 # Handler for adding workout data based on user input
-@dp.message_handler()
-async def add_workout(message: types.Message):
+@dp.message()
+async def add_workout(message: Message):
     answer = message.text
     if 'current_question' in USER_DATA:
         USER_DATA[USER_DATA['current_question']] = answer
@@ -82,12 +83,15 @@ async def add_workout(message: types.Message):
 
 
 # Function to save workout data to the database
-async def save_workout_data(message: types.Message):
+async def save_workout_data(message: Message):
     current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     data = [current_date, USER_DATA.get(questions[0], ""), USER_DATA.get(questions[1], ""), USER_DATA.get(questions[2], "")]
     insert_workout_data(data)
     await message.answer("Данные о тренировке успешно сохранены!")
+
 # Start the polling loop for the dispatcher
+async def main():
+    await dp.start_polling(bot)
+
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(dp.start_polling())
+    asyncio.run(main())

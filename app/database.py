@@ -29,7 +29,9 @@ def create_table():
                        date VARCHAR(50),
                        hands VARCHAR(50),
                        breast VARCHAR(50),
-                       press VARCHAR(50))''')
+                       press VARCHAR(50),
+                       height VARCHAR(50),
+                       weight VARCHAR(50))''')
     conn.commit()
     conn.close()
 
@@ -43,7 +45,7 @@ def insert_workout_data(data):
     """
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO fitness (date, hands, breast, press) VALUES (?, ?, ?, ?)", data)
+    cursor.execute("INSERT INTO fitness (date, hands, breast, press, height, weight) VALUES (?, ?, ?, ?, ?, ?)", data)
     conn.commit()
     conn.close()
 

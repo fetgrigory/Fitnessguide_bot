@@ -26,7 +26,9 @@ USER_DATA = {}
 questions = [
     "Введите количество жима лёжа:",
     "Введите количество разведения гантелей на грудь:",
-    "Введите количество подъёмов туловища из положения лёжа на спине:"
+    "Введите количество подъёмов туловища из положения лёжа на спине:",
+    "Введите ваш рост (в см):",
+    "Введите ваш вес (в кг):"
 ]
 
 # Creating a table in the database
@@ -58,7 +60,12 @@ async def get_workout_data_handler(callback_query: CallbackQuery):
     data = get_workout_data()
     result = ''
     for record in data:
-        result += f"Дата: {record[1]}\nОтжимания: {record[2]}\nЖим лёжа: {record[3]}\nРазведение гантелей на грудь: {record[4]}\n\n"
+        result += (f"Дата: {record[1]}\n"
+                   f"Отжимания: {record[2]}\n"
+                   f"Жим лёжа: {record[3]}\n"
+                   f"Разведение гантелей на грудь: {record[4]}\n"
+                   f"Рост: {record[5]}\n"
+                   f"Вес: {record[6]}\n\n")
     await bot.send_message(callback_query.message.chat.id, f"Данные о тренировках:\n{result}")
 
 
@@ -85,7 +92,14 @@ async def add_workout(message: Message):
 # Function to save workout data to the database
 async def save_workout_data(message: Message):
     current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    data = [current_date, USER_DATA.get(questions[0], ""), USER_DATA.get(questions[1], ""), USER_DATA.get(questions[2], "")]
+    data = [
+        current_date,
+        USER_DATA.get(questions[0], ""),
+        USER_DATA.get(questions[1], ""),
+        USER_DATA.get(questions[2], ""),
+        USER_DATA.get(questions[3], ""),
+        USER_DATA.get(questions[4], "")
+    ]
     insert_workout_data(data)
     await message.answer("Данные о тренировке успешно сохранены!")
 

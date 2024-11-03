@@ -51,14 +51,13 @@ async def get_workout_data_handler(callback_query: CallbackQuery):
     data = get_workout_data()
     result = ''
     for record in data:
-        bmi, category = calculate_bmi_category(float(record[5]), float(record[6]))
         result += (f"Дата: {record[1]}\n"
                    f"Отжимания: {record[2]}\n"
                    f"Жим лёжа: {record[3]}\n"
                    f"Разведение гантелей на грудь: {record[4]}\n"
                    f"Рост: {record[5]} см\n"
                    f"Вес: {record[6]} кг\n"
-                   f"ИМТ: {bmi:.2f} ({category})\n\n")
+                   f"ИМТ: {record[7]:.2f} ({record[8]})\n\n")
     await bot.send_message(callback_query.message.chat.id, f"Данные о тренировках:\n{result}")
 
 async def ask_next_question(message: Message):
@@ -79,18 +78,21 @@ async def add_workout(message: Message):
 
 async def save_workout_data(message: Message):
     current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    height = float(USER_DATA.get(questions[3], 0)) / 100  # преобразование в метры для расчета ИМТ
+    weight = float(USER_DATA.get(questions[4], 0))
+    bmi, category = calculate_bmi_category(height, weight)
+    
     data = [
         current_date,
         USER_DATA.get(questions[0], ""),
         USER_DATA.get(questions[1], ""),
         USER_DATA.get(questions[2], ""),
         USER_DATA.get(questions[3], ""),
-        USER_DATA.get(questions[4], "")
+        USER_DATA.get(questions[4], ""),
+        bmi,
+        category
     ]
     insert_workout_data(data)
-    height = float(USER_DATA.get(questions[3], 0)) / 100
-    weight = float(USER_DATA.get(questions[4], 0))
-    bmi, category = calculate_bmi_category(height, weight)
     await message.answer(f"Данные о тренировке успешно сохранены!\nВаш ИМТ: {bmi:.2f} ({category})")
 
 def calculate_bmi_category(height_in_meters: float, weight_in_kg: float):

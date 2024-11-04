@@ -10,6 +10,7 @@ from app.database import create_table, insert_workout_data, get_workout_data
 from app.keyboards import main_keyboard
 import asyncio
 
+
 # Load environment variables
 load_dotenv()
 
@@ -29,7 +30,8 @@ questions = [
 
 # Creating a table in the database
 create_table()
-# Making sure that the bot is running
+
+# Ensuring that the bot is running
 print('Бот успешно запущен!')
 
 @dp.message(Command("start"))
@@ -49,6 +51,9 @@ async def add_workout_data(callback_query: CallbackQuery):
 async def get_workout_data_handler(callback_query: CallbackQuery):
     await callback_query.answer()
     data = get_workout_data()
+    if not data:
+        await bot.send_message(callback_query.message.chat.id, "Данных о тренировках нет!")
+        return
     result = ''
     for record in data:
         result += (f"Дата: {record[1]}\n"
@@ -72,16 +77,30 @@ async def ask_next_question(message: Message):
 async def add_workout(message: Message):
     answer = message.text
     if 'current_question' in USER_DATA:
+        question_index = questions.index(USER_DATA['current_question'])
+        # Exercise counts need to be integers
+        if question_index in {0, 1, 2}:
+            if not answer.isdigit():
+                await message.answer("Пожалуйста, введите числовое значение.")
+                return
+            # Height and weight need to be floats
+        elif question_index in {3, 4}:
+            try:
+                float(answer)
+            except ValueError:
+                await message.answer("Пожалуйста, введите числовое значение.")
+                return
+
         USER_DATA[USER_DATA['current_question']] = answer
         del USER_DATA['current_question']
         await ask_next_question(message)
 
 async def save_workout_data(message: Message):
     current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    height = float(USER_DATA.get(questions[3], 0)) / 100  # преобразование в метры для расчета ИМТ
+    # Convert to meters for BMI calculation
+    height = float(USER_DATA.get(questions[3], 0)) / 100  
     weight = float(USER_DATA.get(questions[4], 0))
     bmi, category = calculate_bmi_category(height, weight)
-    
     data = [
         current_date,
         USER_DATA.get(questions[0], ""),
@@ -115,6 +134,5 @@ def calculate_bmi_category(height_in_meters: float, weight_in_kg: float):
 
 async def main():
     await dp.start_polling(bot)
-
 if __name__ == '__main__':
     asyncio.run(main())

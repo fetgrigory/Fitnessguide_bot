@@ -98,7 +98,7 @@ async def add_workout(message: Message):
 async def save_workout_data(message: Message):
     current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     # Convert to meters for BMI calculation
-    height = float(USER_DATA.get(questions[3], 0)) / 100  
+    height = float(USER_DATA.get(questions[3], 0)) / 100
     weight = float(USER_DATA.get(questions[4], 0))
     bmi, category = calculate_bmi_category(height, weight)
     data = [

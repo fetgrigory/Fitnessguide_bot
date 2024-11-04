@@ -20,6 +20,8 @@ def create_connection():
 
 # Function for creating a table in the database
 def create_table():
+    """AI is creating summary for create_table
+    """
     conn = create_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -40,6 +42,11 @@ def create_table():
 
 
 def insert_workout_data(data):
+    """AI is creating summary for insert_workout_data
+
+    Args:
+        data ([type]): [description]
+    """
     conn = create_connection()
     cursor = conn.cursor()
     cursor.execute("""

@@ -6,7 +6,8 @@ from aiogram import Bot, Dispatcher
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
-from app.database import create_table, insert_workout_data, get_workout_data
+# from app.database.sqlite3_db import create_table, insert_workout_data, get_workout_data
+from app.database.PostgreSQL_db import create_table, insert_workout_data, get_workout_data
 from app.keyboards import main_keyboard
 import asyncio
 

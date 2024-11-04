@@ -7,8 +7,8 @@
 ![Снимок экрана 2024-05-26 164435](https://github.com/fetgrigory/Fitnessguide_bot/assets/157891679/5ac0d448-365b-409d-8095-d8566eed11eb)
 
 
-# Описание программы
-Применяемые библиотеки:<br />
-aiogram            2.14.3 <br />
-python-dotenv  1.0.1 <br />
+## Применяемые библиотеки:<br />
+aiogram            3.13.1 <br />
+python-dotenv      1.0.1 <br />
 sqlite3 <br />
+psycopg2  2.9.10 <br />

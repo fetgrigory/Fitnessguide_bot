@@ -23,6 +23,7 @@ def create_connection():
         port=os.getenv('PORT')
     )
 
+
 # Function for creating a table in the database
 def create_table():
     """Creates the fitness table in the PostgreSQL database."""
@@ -45,6 +46,7 @@ def create_table():
     cursor.close()
     conn.close()
 
+
 # Function for inserting workout data
 def insert_workout_data(data):
     """Inserts workout data into the fitness table.
@@ -61,6 +63,7 @@ def insert_workout_data(data):
     conn.commit()
     cursor.close()
     conn.close()
+
 
 # Function for getting training data
 def get_workout_data():

@@ -3,7 +3,7 @@ This bot make
 
 Author: Fetkulin Grigory, Fetkulin.G.R@yandex.ru
 Starting 15/04/2022
-Ending /
+Ending //
 '''
 # Installing the necessary libraries
 import os

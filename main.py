@@ -104,6 +104,8 @@ async def process_bench_press(message: types.Message, state: FSMContext):
         return
     await state.update_data(bench_press=int(message.text))
     await ask_question(message, state, WorkoutStates.DumbbellFly, questions[1])
+
+
 # Handler to process Dumbbell Fly data
 @dp.message(WorkoutStates.DumbbellFly)
 async def process_dumbbell_fly(message: types.Message, state: FSMContext):

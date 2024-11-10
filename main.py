@@ -1,3 +1,10 @@
+'''
+This bot make
+
+Author: Fetkulin Grigory, Fetkulin.G.R@yandex.ru
+Starting 15/04/2022
+Ending //
+'''
 # Installing the necessary libraries
 import os
 import datetime
@@ -45,6 +52,7 @@ create_table()
 # Ensuring that the bot is running
 print('Бот успешно запущен!')
 
+
 @dp.message(Command("start"))
 async def start(message: Message):
     USER_DATA.clear()
@@ -54,11 +62,14 @@ async def start(message: Message):
                          f"Меня зовут {me.first_name}, Я помогу вам вести учет фитнес-тренировок.",
                          reply_markup=keyboard)
 
+
 # Handler for initiating the workout data collection process
 @dp.callback_query(lambda c: c.data == 'add_data')
 async def add_workout_data(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()
     await ask_question(callback_query.message, state, WorkoutStates.BenchPress, questions[0])
+
+
 # Handler to retrieve and display stored workout data
 @dp.callback_query(lambda c: c.data == 'get_data')
 async def get_workout_data_handler(callback_query: CallbackQuery):

@@ -34,7 +34,7 @@ HOST="127.0.0.1"
 DBNAME="example_db"
 USER="admin_user"
 PASSWORD="strongpassword"
-PORT="3245"
+PORT="5432"
 ```
 
 ### Шаг 3: Подготовка виртуального окружения и запуск бота
